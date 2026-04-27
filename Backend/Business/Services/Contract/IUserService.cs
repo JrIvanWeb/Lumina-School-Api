@@ -1,0 +1,11 @@
+using LuminiSchool.Domain.Model.User.DTOs;
+
+namespace LuminiSchool.Business.Services.Contract
+{
+    public interface IUserService
+    {
+        Task<UserInfoDto>           CreateUserAsync(CreateUserDto dto);
+        Task<IList<UserListItemDto>> GetAllUsersAsync();
+        Task                        ToggleActiveAsync(Guid userId);
+    }
+}

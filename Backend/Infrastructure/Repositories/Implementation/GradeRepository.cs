@@ -18,3 +18,4 @@ namespace LuminiSchool.Infrastructure.Repositories.Implementation
         public async Task AssignSubjectAsync(Guid gid, Guid sid) { var g = await _db.Include(x => x.Subjects).FirstOrDefaultAsync(x => x.Id == gid); var s = await _ctx.Subjects.FindAsync(sid); if (g != null && s != null) { g.Subjects.Add(s); await _ctx.SaveChangesAsync(); } }
         public async Task AssignTeacherAsync(Guid gid, Guid tid) { var g = await _db.Include(x => x.Teachers).FirstOrDefaultAsync(x => x.Id == gid); var t = await _ctx.Teachers.FindAsync(tid); if (g != null && t != null) { g.Teachers.Add(t); await _ctx.SaveChangesAsync(); } }
     }
+}

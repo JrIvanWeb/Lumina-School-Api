@@ -1,5 +1,6 @@
 ﻿using LuminiSchool.Domain.Entities.Certificate;
 using LuminiSchool.Infrastructure.Repositories.Contract;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;

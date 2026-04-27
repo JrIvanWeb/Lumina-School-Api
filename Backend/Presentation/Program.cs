@@ -1,3 +1,4 @@
+using LuminiSchool.Infrastructure.Seed;
 using LuminiSchool.Presentation.IoCContainers;
 using LuminiSchool.Presentation.Serilog;
 using Serilog;
@@ -33,7 +34,14 @@ builder.Services.AddCors(options =>
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-app.UseMiddleware<LuminiSchool.Presentation.IoCContainers.GlobalExceptionMiddleware>();
+// ── Seed inicial (roles + SuperAdmin) ─────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+   var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
+    await seeder.SeedAsync();
+}
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

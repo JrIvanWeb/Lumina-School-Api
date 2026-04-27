@@ -1,22 +1,22 @@
-﻿using AutoMapper;
+using AutoMapper;
 using LuminiSchool.Domain.Entities.Enrollment;
+using LuminiSchool.Domain.Entities.Parent;
 using LuminiSchool.Domain.Model.Enrollment.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using LuminiSchool.Domain.Model.Parent.DTOs;
 
 namespace LuminiSchool.Business.Utils.Profiles
 {
-    public class EnrollmentProfile: Profile
+    public class EnrollmentProfile : Profile
     {
-        public EnrollmentProfile() { 
-          CreateMap<EnrollmentEntity, EnrollmentDto>()
-            .ForMember(d => d.StudentName, o => o.MapFrom(s => s.Student != null ? $"{s.Student.FirstName} {s.Student.LastName}" : ""))
-                .ForMember(d => d.GradeName, o => o.MapFrom(s => s.Grade != null ? s.Grade.Name : ""));
+        public EnrollmentProfile()
+        {
+            CreateMap<EnrollmentEntity, EnrollmentDto>()
+                .ForMember(d => d.StudentName,  o => o.MapFrom(s => s.Student  != null ? $"{s.Student.FirstName} {s.Student.LastName}" : ""))
+                .ForMember(d => d.GradeName,    o => o.MapFrom(s => s.Grade    != null ? s.Grade.Name : ""))
+                .ForMember(d => d.GuardianName, o => o.MapFrom(s => s.Guardian != null ? s.Guardian.FullName : ""));
 
             CreateMap<CreateEnrollmentDto, EnrollmentEntity>();
+            CreateMap<ParentEntity, ParentDto>();
         }
     }
 }

@@ -3,11 +3,16 @@ using LuminiSchool.Business.Services.Contract;
 using LuminiSchool.Business.Services.Implementation;
 using LuminiSchool.Business.Utils.Profiles;
 using LuminiSchool.Domain.Entities.User;
+using LuminiSchool.Infrastructure.Email.Contract;
+using LuminiSchool.Infrastructure.Email.Implementation;
 using LuminiSchool.Infrastructure.FileStorage.Contract;
 using LuminiSchool.Infrastructure.FileStorage.Implementation;
+using LuminiSchool.Infrastructure.JWT.Contract;
+using LuminiSchool.Infrastructure.JWT.Implementation;
 using LuminiSchool.Infrastructure.Repositories;
 using LuminiSchool.Infrastructure.Repositories.Contract;
 using LuminiSchool.Infrastructure.Repositories.Implementation;
+using LuminiSchool.Infrastructure.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -41,11 +46,25 @@ namespace LuminiSchool.Presentation.IoCContainers
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-            // ── Repositories ──────────────────────────────────────────────────────
+            // ── JWT ───────────────────────────────────────────────────────────────
+            services.AddScoped<IJwtService, JwtService>();
+
+            // ── Email ─────────────────────────────────────────────────────────────
+            services.AddScoped<IEmailService, SmtpEmailService>();
+
+            // ── Auth Repositories ─────────────────────────────────────────────────
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            services.AddScoped<IPermissionRepository,   PermissionRepository>();
+
+            // ── Seeder ────────────────────────────────────────────────────────────
+            services.AddScoped<DbSeeder>();
+
+            // ── Domain Repositories ───────────────────────────────────────────────
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IStudentRepository,              StudentRepository>();
             services.AddScoped<ITeacherRepository,              TeacherRepository>();
             services.AddScoped<IGuardianRepository,             GuardianRepository>();
+            services.AddScoped<IParentRepository,               ParentRepository>();
             services.AddScoped<ISubjectRepository,              SubjectRepository>();
             services.AddScoped<IGradeRepository,                GradeRepository>();
             services.AddScoped<IAcademicPeriodRepository,       AcademicPeriodRepository>();
@@ -77,8 +96,12 @@ namespace LuminiSchool.Presentation.IoCContainers
             // ── AutoMapper ────────────────────────────────────────────────────────
             services.AddAutoMapper(typeof(IcfesSimulatorProfile));
 
-            // ── Services ──────────────────────────────────────────────────────────
-            services.AddScoped<IAuthService,                AuthService>();
+            // ── Auth & User Services ──────────────────────────────────────────────
+            services.AddScoped<IAuthService,       AuthService>();
+            services.AddScoped<IUserService,       UserService>();
+            services.AddScoped<IPermissionService, PermissionService>();
+
+            // ── Domain Services ───────────────────────────────────────────────────
             services.AddScoped<IStudentService,             StudentService>();
             services.AddScoped<ITeacherService,             TeacherService>();
             services.AddScoped<IGuardianService,            GuardianService>();
@@ -175,7 +198,7 @@ namespace LuminiSchool.Presentation.IoCContainers
     // ── Global Exception Middleware ────────────────────────────────────────────────
     public class GlobalExceptionMiddleware
     {
-        private readonly RequestDelegate                    _next;
+        private readonly RequestDelegate                     _next;
         private readonly ILogger<GlobalExceptionMiddleware> _logger;
 
         public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
@@ -186,10 +209,7 @@ namespace LuminiSchool.Presentation.IoCContainers
 
         public async Task InvokeAsync(HttpContext context)
         {
-            try
-            {
-                await _next(context);
-            }
+            try   { await _next(context); }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error no controlado: {Message}", ex.Message);
@@ -201,13 +221,13 @@ namespace LuminiSchool.Presentation.IoCContainers
         {
             var (code, msg) = ex switch
             {
-                NotFoundException    e => (HttpStatusCode.NotFound,            e.Message),
-                UnauthorizedException e => (HttpStatusCode.Unauthorized,        e.Message),
-                ForbiddenException   e => (HttpStatusCode.Forbidden,           e.Message),
-                ConflictException    e => (HttpStatusCode.Conflict,            e.Message),
-                ValidationException  e => (HttpStatusCode.BadRequest,          string.Join("; ", e.Errors)),
-                BusinessException    e => (HttpStatusCode.BadRequest,          e.Message),
-                _                     => (HttpStatusCode.InternalServerError,  "Error inesperado en el servidor.")
+                NotFoundException     e => (HttpStatusCode.NotFound,           e.Message),
+                UnauthorizedException e => (HttpStatusCode.Unauthorized,       e.Message),
+                ForbiddenException    e => (HttpStatusCode.Forbidden,          e.Message),
+                ConflictException     e => (HttpStatusCode.Conflict,           e.Message),
+                ValidationException   e => (HttpStatusCode.BadRequest,         string.Join("; ", e.Errors)),
+                BusinessException     e => (HttpStatusCode.BadRequest,         e.Message),
+                _                       => (HttpStatusCode.InternalServerError,"Error inesperado en el servidor.")
             };
 
             ctx.Response.ContentType = "application/json";

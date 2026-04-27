@@ -1,16 +1,12 @@
-﻿using LuminiSchool.Domain.Model.User.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using LuminiSchool.Domain.Model.User.DTOs;
 
 namespace LuminiSchool.Business.Services.Contract
 {
     public interface IAuthService
     {
-        Task<LoginResponseDto> LoginAsync(LoginDto dto);
-        Task<UserInfoDto> RegisterAsync(RegisterUserDto dto);
-        Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto);
+        Task<LoginResponseDto>  LoginAsync(LoginDto dto);
+        Task<LoginResponseDto>  RefreshTokenAsync(RefreshTokenRequestDto dto);
+        Task                  ChangePasswordAsync(Guid userId, ChangePasswordDto dto);
+        Task                    ForceChangePasswordAsync(Guid userId, ForceChangePasswordDto dto);
     }
 }
