@@ -13,7 +13,11 @@ namespace LuminiSchool.Business.Utils.Profiles
             CreateMap<EnrollmentEntity, EnrollmentDto>()
                 .ForMember(d => d.StudentName,  o => o.MapFrom(s => s.Student  != null ? $"{s.Student.FirstName} {s.Student.LastName}" : ""))
                 .ForMember(d => d.GradeName,    o => o.MapFrom(s => s.Grade    != null ? s.Grade.Name : ""))
-                .ForMember(d => d.GuardianName, o => o.MapFrom(s => s.Guardian != null ? s.Guardian.FullName : ""));
+                .ForMember(d => d.GuardianName, o => o.MapFrom(s => s.Guardian != null ? s.Guardian.FullName : ""))
+                .ForMember(d => d.Student,      o => o.Ignore())
+                .ForMember(d => d.Father,       o => o.Ignore())
+                .ForMember(d => d.Mother,       o => o.Ignore())
+                .ForMember(d => d.Guardian,     o => o.Ignore());
 
             CreateMap<CreateEnrollmentDto, EnrollmentEntity>();
             CreateMap<ParentEntity, ParentDto>();

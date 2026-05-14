@@ -1,5 +1,6 @@
 using LuminiSchool.Domain.Entities.User;
 using LuminiSchool.Domain.Entities.Student;
+using LuminiSchool.Domain.Entities.GradeSubjectTeacher;
 using LuminiSchool.Domain.Entities.Teacher;
 using LuminiSchool.Domain.Entities.Guardian;
 using LuminiSchool.Domain.Entities.Parent;
@@ -38,9 +39,9 @@ namespace LuminiSchool.Infrastructure.Repositories
         public DbSet<RolePermission> RolePermissions { get; set; }
 
         // ── Matrícula ─────────────────────────────────────────────────────────
-        public DbSet<StudentEntity>  Students  { get; set; }
-        public DbSet<ParentEntity>   Parents   { get; set; }
-        public DbSet<GuardianEntity> Guardians { get; set; }
+        public DbSet<StudentEntity>    Students    { get; set; }
+        public DbSet<ParentEntity>     Parents     { get; set; }
+        public DbSet<GuardianEntity>   Guardians   { get; set; }
         public DbSet<EnrollmentEntity> Enrollments { get; set; }
 
         // ── Resto del dominio ─────────────────────────────────────────────────
@@ -66,6 +67,7 @@ namespace LuminiSchool.Infrastructure.Repositories
         public DbSet<DiagnosticResultEntity>     DiagnosticResults     { get; set; }
         public DbSet<IcfesSimulatorEntity>       IcfesSimulators       { get; set; }
         public DbSet<IcfesResultEntity>          IcfesResults          { get; set; }
+        public DbSet<GradeSubjectTeacherEntity> GradeSubjectTeachers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -136,12 +138,33 @@ namespace LuminiSchool.Infrastructure.Repositories
                 .HasForeignKey(e => e.GuardianId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ── Resto de relaciones ───────────────────────────────────────────
-            builder.Entity<TeacherEntity>().HasMany(t => t.Subjects).WithMany(s => s.Teachers).UsingEntity(j => j.ToTable("TeacherSubjects"));
-            builder.Entity<GradeEntity>().HasMany(g => g.Students).WithMany(s => s.Grades).UsingEntity(j => j.ToTable("GradeStudents"));
-            builder.Entity<GradeEntity>().HasMany(g => g.Subjects).WithMany().UsingEntity(j => j.ToTable("GradeSubjects"));
-            builder.Entity<GradeEntity>().HasMany(g => g.Teachers).WithMany().UsingEntity(j => j.ToTable("GradeTeachers"));
+            // ── Teacher ↔ Subject (muchos a muchos) ───────────────────────────
+            builder.Entity<TeacherEntity>()
+                .HasMany(t => t.Subjects)
+                .WithMany(s => s.Teachers)
+                .UsingEntity(j => j.ToTable("TeacherSubjects"));
 
+            // ── Grade ↔ Student (muchos a muchos) ─────────────────────────────
+            builder.Entity<GradeEntity>()
+                .HasMany(g => g.Students)
+                .WithMany(s => s.Grades)
+                .UsingEntity(j => j.ToTable("GradeStudents"));
+
+            // ── Grade ↔ Subject (muchos a muchos, bidireccional) ──────────────
+            // WithMany(s => s.Grades) permite consultar desde SubjectEntity
+            // qué grados tienen esa asignatura (necesario para SubjectRepository).
+            builder.Entity<GradeEntity>()
+                .HasMany(g => g.Subjects)
+                .WithMany(s => s.Grades)
+                .UsingEntity(j => j.ToTable("GradeSubjects"));
+
+            // ── Grade ↔ Teacher (muchos a muchos) ─────────────────────────────
+            builder.Entity<GradeEntity>()
+                .HasMany(g => g.Teachers)
+                .WithMany()
+                .UsingEntity(j => j.ToTable("GradeTeachers"));
+
+            // ── Precisiones decimales ─────────────────────────────────────────
             builder.Entity<GradeRecordEntity>().Property(g => g.Score).HasPrecision(5, 2);
             builder.Entity<GradeRecordEntity>().Property(g => g.Average).HasPrecision(5, 2);
             builder.Entity<ActivityEntity>().Property(a => a.MaxScore).HasPrecision(5, 2);
@@ -149,6 +172,31 @@ namespace LuminiSchool.Infrastructure.Repositories
             builder.Entity<BulletinEntity>().Property(b => b.GeneralAverage).HasPrecision(5, 2);
             builder.Entity<DiagnosticResultEntity>().Property(d => d.Score).HasPrecision(5, 2);
             builder.Entity<IcfesResultEntity>().Property(i => i.TotalScore).HasPrecision(5, 2);
+
+            builder.Entity<GradeSubjectTeacherEntity>(e =>
+            {
+                e.HasKey(x => x.Id);
+
+                e.HasOne(x => x.Grade)
+                 .WithMany()
+                 .HasForeignKey(x => x.GradeId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(x => x.Subject)
+                 .WithMany()
+                 .HasForeignKey(x => x.SubjectId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(x => x.Teacher)
+                 .WithMany()
+                 .HasForeignKey(x => x.TeacherId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                // Evita duplicados: misma combinación grado+materia+profesor
+                e.HasIndex(x => new { x.GradeId, x.SubjectId, x.TeacherId }).IsUnique();
+
+                e.ToTable("GradeSubjectTeachers");
+            });
         }
     }
 }

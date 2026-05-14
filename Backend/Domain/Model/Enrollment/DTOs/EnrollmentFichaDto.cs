@@ -5,11 +5,10 @@ using LuminiSchool.Domain.Model.Parent.DTOs;
 
 namespace LuminiSchool.Domain.Model.Enrollment.DTOs
 {
-    // ── Entrada: Ficha completa de matrícula ──────────────────────────────────
 
     public class CreateFichaMatriculaDto
     {
-        // 1. Datos del estudiante
+
         public StudentFichaDto Student { get; set; } = new();
 
         // 2. Padres (opcionales - puede venir uno, ambos o ninguno)

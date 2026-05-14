@@ -1,4 +1,7 @@
 using LuminiSchool.Domain.Entities.Enrollment;
+using LuminiSchool.Domain.Entities.Student;
+using LuminiSchool.Domain.Entities.Guardian;
+using LuminiSchool.Domain.Model.Parent.DTOs;
 
 namespace LuminiSchool.Domain.Model.Enrollment.DTOs
 {
@@ -13,5 +16,9 @@ namespace LuminiSchool.Domain.Model.Enrollment.DTOs
         public int              AcademicYear   { get; set; }
         public EnrollmentStatus Status         { get; set; }
         public DateTime         EnrollmentDate { get; set; }
+        public StudentFichaDto?  Student        { get; set; }
+        public ParentDto?        Father         { get; set; }
+        public ParentDto?        Mother         { get; set; }
+        public CreateAcudienteDto? Guardian     { get; set; }
     }
 }

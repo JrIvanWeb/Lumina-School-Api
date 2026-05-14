@@ -4,6 +4,7 @@ using LuminiSchool.Domain.Entities.User;
 using LuminiSchool.Domain.Model.User.DTOs;
 using LuminiSchool.Infrastructure.Email.Contract;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace LuminiSchool.Business.Services.Implementation
 {
@@ -64,20 +65,28 @@ namespace LuminiSchool.Business.Services.Implementation
 
         public async Task<IList<UserListItemDto>> GetAllUsersAsync()
         {
+            var users = await _um.Users
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.LastName)
+                .ToListAsync(); // 🔥 CLAVE: cerrar el reader aquí
+
             var result = new List<UserListItemDto>();
-            foreach (var user in _um.Users.Where(u => u.IsActive).OrderBy(u => u.LastName))
+
+            foreach (var user in users)
             {
                 var roles = await _um.GetRolesAsync(user);
+
                 result.Add(new UserListItemDto
                 {
-                    Id        = user.Id,
-                    FullName  = user.FullName,
-                    Email     = user.Email!,
-                    Roles     = roles,
-                    IsActive  = user.IsActive,
+                    Id = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email!,
+                    Roles = roles,
+                    IsActive = user.IsActive,
                     CreatedAt = user.CreatedAt
                 });
             }
+
             return result;
         }
 
@@ -88,6 +97,58 @@ namespace LuminiSchool.Business.Services.Implementation
             user.IsActive  = !user.IsActive;
             user.UpdatedAt = DateTime.UtcNow;
             await _um.UpdateAsync(user);
+        }
+
+        public async Task<UserInfoDto> UpdateUserAsync(Guid userId, UpdateUserDto dto)
+        {
+            var user = await _um.FindByIdAsync(userId.ToString())
+                       ?? throw new NotFoundException($"Usuario {userId} no encontrado.");
+
+            user.FirstName = dto.FirstName;
+            user.LastName  = dto.LastName;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            var updateResult = await _um.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+                throw new BusinessException(string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+
+            // Update role if changed
+            var currentRoles = await _um.GetRolesAsync(user);
+            if (!currentRoles.Contains(dto.Role))
+            {
+                var removeResult = await _um.RemoveFromRolesAsync(user, currentRoles);
+                if (!removeResult.Succeeded)
+                    throw new BusinessException("Error al remover roles anteriores.");
+
+                var addResult = await _um.AddToRoleAsync(user, dto.Role);
+                if (!addResult.Succeeded)
+                    throw new BusinessException($"Rol inválido: {dto.Role}");
+            }
+
+            var roles = await _um.GetRolesAsync(user);
+            return new UserInfoDto
+            {
+                Id           = user.Id,
+                FirstName    = user.FirstName,
+                LastName     = user.LastName,
+                FullName     = user.FullName,
+                Email        = user.Email!,
+                Roles        = roles,
+                IsFirstLogin = user.IsFirstLogin
+            };
+        }
+
+        public async Task DeleteUserAsync(Guid userId)
+        {
+            var user = await _um.FindByIdAsync(userId.ToString())
+                       ?? throw new NotFoundException($"Usuario {userId} no encontrado.");
+
+            // Soft delete — desactivar permanentemente
+            user.IsActive  = false;
+            user.UpdatedAt = DateTime.UtcNow;
+            var result = await _um.UpdateAsync(user);
+            if (!result.Succeeded)
+                throw new BusinessException(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────

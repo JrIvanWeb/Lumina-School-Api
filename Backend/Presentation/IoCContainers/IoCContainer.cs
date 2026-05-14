@@ -62,6 +62,7 @@ namespace LuminiSchool.Presentation.IoCContainers
             // ── Domain Repositories ───────────────────────────────────────────────
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IStudentRepository,              StudentRepository>();
+            services.AddScoped<IGradeSubjectTeacherRepository,  GradeSubjectTeacherRepository>();
             services.AddScoped<ITeacherRepository,              TeacherRepository>();
             services.AddScoped<IGuardianRepository,             GuardianRepository>();
             services.AddScoped<IParentRepository,               ParentRepository>();
@@ -103,6 +104,7 @@ namespace LuminiSchool.Presentation.IoCContainers
 
             // ── Domain Services ───────────────────────────────────────────────────
             services.AddScoped<IStudentService,             StudentService>();
+            services.AddScoped<IGradeSubjectTeacherService, GradeSubjectTeacherService>();
             services.AddScoped<ITeacherService,             TeacherService>();
             services.AddScoped<IGuardianService,            GuardianService>();
             services.AddScoped<ISubjectService,             SubjectService>();

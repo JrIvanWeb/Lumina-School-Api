@@ -1,9 +1,4 @@
-﻿using LuminiSchool.Domain.Model.AcademicPeriod.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using LuminiSchool.Domain.Model.AcademicPeriod.DTOs;
 
 namespace LuminiSchool.Business.Services.Contract
 {
@@ -13,6 +8,8 @@ namespace LuminiSchool.Business.Services.Contract
         Task<AcademicPeriodDto?> GetActiveAsync();
         Task<IEnumerable<AcademicPeriodDto>> GetByYearAsync(int year);
         Task<AcademicPeriodDto> CreateAsync(CreateAcademicPeriodDto dto);
+        Task<AcademicPeriodDto> UpdateAsync(Guid id, UpdateAcademicPeriodDto dto);
+        Task ToggleActiveAsync(Guid id);
         Task DeleteAsync(Guid id);
     }
 }

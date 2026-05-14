@@ -27,9 +27,36 @@ namespace LuminiSchool.Infrastructure.Repositories.Implementation
 
         public async Task AddOrUpdateAsync(GuardianEntity guardian)
         {
-            var exists = await _db.AnyAsync(g => g.Id == guardian.Id);
-            if (exists) _ctx.Entry(guardian).State = EntityState.Modified;
-            else        await _db.AddAsync(guardian);
+            // Cargar entidad existente con sus estudiantes para evitar duplicate key en GuardianStudents
+            var existing = await _db
+                .Include(g => g.Students)
+                .FirstOrDefaultAsync(g => g.Id == guardian.Id);
+
+            if (existing != null)
+            {
+                // Actualizar solo campos escalares, sin reemplazar la colección
+                _ctx.Entry(existing).CurrentValues.SetValues(guardian);
+
+                // Agregar únicamente los estudiantes que aún no están vinculados
+                foreach (var student in guardian.Students)
+                {
+                    if (!existing.Students.Any(s => s.Id == student.Id))
+                    {
+                        var trackedStudent = _ctx.ChangeTracker
+                            .Entries<Domain.Entities.Student.StudentEntity>()
+                            .FirstOrDefault(e => e.Entity.Id == student.Id)?.Entity
+                            ?? await _ctx.Students.FindAsync(student.Id);
+
+                        if (trackedStudent != null)
+                            existing.Students.Add(trackedStudent);
+                    }
+                }
+            }
+            else
+            {
+                await _db.AddAsync(guardian);
+            }
+
             await _ctx.SaveChangesAsync();
         }
     }

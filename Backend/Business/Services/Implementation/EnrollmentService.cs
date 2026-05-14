@@ -37,7 +37,21 @@ namespace LuminiSchool.Business.Services.Implementation
         }
 
         public async Task<IEnumerable<EnrollmentDto>> GetAllAsync() =>
-            _mapper.Map<IEnumerable<EnrollmentDto>>(await _enrollRepo.GetAllAsync());
+            _mapper.Map<IEnumerable<EnrollmentDto>>(await _enrollRepo.GetAllWithDetailsAsync());
+
+        public async Task<EnrollmentDto> GetByIdAsync(Guid enrollmentId)
+        {
+            var entity = await _enrollRepo.GetWithDetailsAsync(enrollmentId)
+                         ?? throw new NotFoundException($"Matrícula {enrollmentId} no encontrada.");
+            return MapEnrollmentDetail(entity);
+        }
+
+        public async Task<CreateFichaMatriculaDto> GetFichaAsync(Guid enrollmentId)
+        {
+            var entity = await _enrollRepo.GetWithDetailsAsync(enrollmentId)
+                         ?? throw new NotFoundException($"Matricula {enrollmentId} no encontrada.");
+            return MapFichaDetail(entity);
+        }
 
         public async Task<IEnumerable<EnrollmentDto>> GetByStudentAsync(Guid studentId) =>
             _mapper.Map<IEnumerable<EnrollmentDto>>(await _enrollRepo.GetByStudentAsync(studentId));
@@ -48,6 +62,44 @@ namespace LuminiSchool.Business.Services.Implementation
             entity.Id             = Guid.NewGuid();
             entity.EnrollmentDate = DateTime.UtcNow;
             return _mapper.Map<EnrollmentDto>(await _enrollRepo.AddAsync(entity));
+        }
+        public async Task ActivateAsync(Guid id)
+        {
+            var e = await _enrollRepo.GetByIdAsync(id)
+                    ?? throw new NotFoundException($"Matrícula {id} no encontrada.");
+            e.Status = EnrollmentStatus.Active;
+            e.WithdrawalDate = null;
+            await _enrollRepo.UpdateAsync(e);
+        }
+
+        public async Task<EnrollmentDto> UpdateAsync(Guid enrollmentId, UpdateEnrollmentDto dto)
+        {
+            var enrollment = await _enrollRepo.GetWithDetailsAsync(enrollmentId)
+                             ?? throw new NotFoundException($"Matricula {enrollmentId} no encontrada.");
+
+            var grade = await _gradeRepo.GetByIdAsync(dto.GradeId)
+                        ?? throw new NotFoundException($"Grado {dto.GradeId} no encontrado.");
+
+            var student = enrollment.Student
+                          ?? throw new NotFoundException("Estudiante de la matricula no encontrado.");
+
+            UpdateStudent(student, dto.Student);
+            await _studentRepo.UpdateAsync(student);
+
+            var father = await UpsertParentAsync(student, dto.Father, ParentRole.Father);
+            var mother = await UpsertParentAsync(student, dto.Mother, ParentRole.Mother);
+            var guardian = await ResolveGuardianAsync(student, dto.Guardian, father, mother, enrollment.Guardian);
+
+            enrollment.GradeId = grade.Id;
+            enrollment.GuardianId = guardian.Id;
+            enrollment.AcademicYear = dto.AcademicYear;
+
+            await _enrollRepo.UpdateAsync(enrollment);
+
+            var updated = await _enrollRepo.GetWithDetailsAsync(enrollmentId)
+                          ?? throw new NotFoundException($"Matricula {enrollmentId} no encontrada.");
+
+            return MapEnrollmentDetail(updated);
         }
 
         /// <summary>
@@ -105,7 +157,10 @@ namespace LuminiSchool.Business.Services.Implementation
                     await _parentRepo.AddAsync(father);
                 }
                 if (!father.Students.Any(s => s.Id == student.Id))
+                {
                     father.Students.Add(student);
+                    await _parentRepo.UpdateAsync(father);
+                }
             }
 
             // ── 4. Registrar madre (opcional) ────────────────────────────────
@@ -119,7 +174,10 @@ namespace LuminiSchool.Business.Services.Implementation
                     await _parentRepo.AddAsync(mother);
                 }
                 if (!mother.Students.Any(s => s.Id == student.Id))
+                {
                     mother.Students.Add(student);
+                    await _parentRepo.UpdateAsync(mother);
+                }
             }
 
             // ── 5. Crear acudiente ───────────────────────────────────────────
@@ -241,6 +299,260 @@ namespace LuminiSchool.Business.Services.Implementation
             e.Status        = EnrollmentStatus.Withdrawn;
             e.WithdrawalDate = DateTime.UtcNow;
             await _enrollRepo.UpdateAsync(e);
+        }
+
+        public async Task DeleteAsync(Guid id)
+        {
+            _ = await _enrollRepo.GetByIdAsync(id)
+                ?? throw new NotFoundException($"Matrícula {id} no encontrada.");
+            await _enrollRepo.DeleteAsync(id);
+        }
+
+        private EnrollmentDto MapEnrollmentDetail(EnrollmentEntity entity)
+        {
+            var father = entity.Student?.Parents.FirstOrDefault(p => p.Role == ParentRole.Father);
+            var mother = entity.Student?.Parents.FirstOrDefault(p => p.Role == ParentRole.Mother);
+            if (father == null && entity.Guardian?.Relationship == GuardianRelationship.Father && entity.Guardian.Parent != null)
+                father = entity.Guardian.Parent;
+            if (mother == null && entity.Guardian?.Relationship == GuardianRelationship.Mother && entity.Guardian.Parent != null)
+                mother = entity.Guardian.Parent;
+
+            return new EnrollmentDto
+            {
+                Id = entity.Id,
+                StudentId = entity.StudentId,
+                StudentName = entity.Student != null ? $"{entity.Student.FirstName} {entity.Student.LastName}" : string.Empty,
+                GradeId = entity.GradeId,
+                GradeName = entity.Grade?.Name ?? string.Empty,
+                GuardianName = entity.Guardian?.FullName ?? string.Empty,
+                AcademicYear = entity.AcademicYear,
+                Status = entity.Status,
+                EnrollmentDate = entity.EnrollmentDate,
+                Student = entity.Student == null ? null : new StudentFichaDto
+                {
+                    DocumentType = entity.Student.DocumentType,
+                    DocumentNumber = entity.Student.DocumentNumber,
+                    FirstName = entity.Student.FirstName,
+                    LastName = entity.Student.LastName,
+                    Gender = entity.Student.Gender,
+                    BirthDate = entity.Student.BirthDate,
+                    BirthPlace = entity.Student.BirthPlace,
+                    Address = entity.Student.Address,
+                    City = entity.Student.City,
+                    Phone = entity.Student.Phone,
+                    Email = entity.Student.Email,
+                    Eps = entity.Student.Eps,
+                    BloodType = entity.Student.BloodType,
+                    PreviousInstitution = entity.Student.PreviousInstitution
+                },
+                Father = father != null ? _mapper.Map<ParentDto>(father) : null,
+                Mother = mother != null ? _mapper.Map<ParentDto>(mother) : null,
+                Guardian = entity.Guardian == null ? null : new CreateAcudienteDto
+                {
+                    GuardianType = entity.Guardian.Relationship,
+                    FullName = entity.Guardian.FullName,
+                    DocumentType = entity.Guardian.DocumentType,
+                    DocumentNumber = entity.Guardian.DocumentNumber,
+                    Phone = entity.Guardian.Phone,
+                    Address = entity.Guardian.Address,
+                    Email = entity.Guardian.Email,
+                    Occupation = entity.Guardian.Occupation
+                }
+            };
+        }
+
+        private CreateFichaMatriculaDto MapFichaDetail(EnrollmentEntity entity)
+        {
+            var father = entity.Student?.Parents.FirstOrDefault(p => p.Role == ParentRole.Father);
+            var mother = entity.Student?.Parents.FirstOrDefault(p => p.Role == ParentRole.Mother);
+
+            if (father == null && entity.Guardian?.Relationship == GuardianRelationship.Father && entity.Guardian.Parent != null)
+                father = entity.Guardian.Parent;
+            if (mother == null && entity.Guardian?.Relationship == GuardianRelationship.Mother && entity.Guardian.Parent != null)
+                mother = entity.Guardian.Parent;
+
+            return new CreateFichaMatriculaDto
+            {
+                Student = entity.Student == null ? new StudentFichaDto() : new StudentFichaDto
+                {
+                    DocumentType = entity.Student.DocumentType,
+                    DocumentNumber = entity.Student.DocumentNumber,
+                    FirstName = entity.Student.FirstName,
+                    LastName = entity.Student.LastName,
+                    Gender = entity.Student.Gender,
+                    BirthDate = entity.Student.BirthDate,
+                    BirthPlace = entity.Student.BirthPlace,
+                    Address = entity.Student.Address,
+                    City = entity.Student.City,
+                    Phone = entity.Student.Phone,
+                    Email = entity.Student.Email,
+                    Eps = entity.Student.Eps,
+                    BloodType = entity.Student.BloodType,
+                    PreviousInstitution = entity.Student.PreviousInstitution
+                },
+                Father = father == null ? null : new CreateParentDto
+                {
+                    FullName = father.FullName,
+                    DocumentType = father.DocumentType,
+                    DocumentNumber = father.DocumentNumber,
+                    Phone = father.Phone,
+                    Occupation = father.Occupation,
+                    Email = father.Email,
+                    Role = ParentRole.Father
+                },
+                Mother = mother == null ? null : new CreateParentDto
+                {
+                    FullName = mother.FullName,
+                    DocumentType = mother.DocumentType,
+                    DocumentNumber = mother.DocumentNumber,
+                    Phone = mother.Phone,
+                    Occupation = mother.Occupation,
+                    Email = mother.Email,
+                    Role = ParentRole.Mother
+                },
+                Guardian = entity.Guardian == null ? new CreateAcudienteDto() : new CreateAcudienteDto
+                {
+                    GuardianType = entity.Guardian.Relationship,
+                    FullName = entity.Guardian.FullName,
+                    DocumentType = entity.Guardian.DocumentType,
+                    DocumentNumber = entity.Guardian.DocumentNumber,
+                    Phone = entity.Guardian.Phone,
+                    Address = entity.Guardian.Address,
+                    Email = entity.Guardian.Email,
+                    Occupation = entity.Guardian.Occupation
+                },
+                GradeId = entity.GradeId,
+                AcademicYear = entity.AcademicYear
+            };
+        }
+
+        private static void UpdateStudent(StudentEntity student, StudentFichaDto dto)
+        {
+            student.DocumentType = dto.DocumentType;
+            student.DocumentNumber = dto.DocumentNumber;
+            student.FirstName = dto.FirstName;
+            student.LastName = dto.LastName;
+            student.Gender = dto.Gender;
+            student.BirthDate = dto.BirthDate;
+            student.BirthPlace = dto.BirthPlace;
+            student.Address = dto.Address;
+            student.City = dto.City;
+            student.Phone = dto.Phone;
+            student.Email = dto.Email;
+            student.Eps = dto.Eps;
+            student.BloodType = dto.BloodType;
+            student.PreviousInstitution = dto.PreviousInstitution;
+            student.UpdatedAt = DateTime.UtcNow;
+        }
+
+        private async Task<ParentEntity?> UpsertParentAsync(StudentEntity student, CreateParentDto? dto, ParentRole role)
+        {
+            if (dto == null) return student.Parents.FirstOrDefault(p => p.Role == role);
+
+            var parent = student.Parents.FirstOrDefault(p => p.Role == role)
+                         ?? await _parentRepo.GetByDocumentAsync(dto.DocumentNumber);
+
+            if (parent == null)
+            {
+                parent = MapParent(dto);
+                parent.Role = role;
+                parent.Students.Add(student);
+                await _parentRepo.AddAsync(parent);
+                return parent;
+            }
+
+            parent.FullName = dto.FullName;
+            parent.DocumentType = dto.DocumentType;
+            parent.DocumentNumber = dto.DocumentNumber;
+            parent.Phone = dto.Phone;
+            parent.Occupation = dto.Occupation;
+            parent.Email = dto.Email;
+            parent.Role = role;
+
+            // No agregar si ya existe en la colección cargada (evita duplicate key en ParentStudents)
+            if (!parent.Students.Any(s => s.Id == student.Id))
+                parent.Students.Add(student);
+
+            // UpdateWithoutSave evita SaveChanges intermedio que puede romper el tracking
+            _parentRepo.UpdateWithoutSave(parent);
+            return parent;
+        }
+
+        private async Task<GuardianEntity> ResolveGuardianAsync(
+            StudentEntity student,
+            CreateAcudienteDto dto,
+            ParentEntity? father,
+            ParentEntity? mother,
+            GuardianEntity? currentGuardian)
+        {
+            if (dto.GuardianType == GuardianRelationship.Father)
+            {
+                if (father == null)
+                    throw new BusinessException("El acudiente es el padre, pero no se proporcionaron datos del padre.");
+
+                return await UpsertGuardianFromParentAsync(student, father, GuardianRelationship.Father, currentGuardian);
+            }
+
+            if (dto.GuardianType == GuardianRelationship.Mother)
+            {
+                if (mother == null)
+                    throw new BusinessException("El acudiente es la madre, pero no se proporcionaron datos de la madre.");
+
+                return await UpsertGuardianFromParentAsync(student, mother, GuardianRelationship.Mother, currentGuardian);
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.FullName) ||
+                string.IsNullOrWhiteSpace(dto.DocumentNumber) ||
+                string.IsNullOrWhiteSpace(dto.Phone))
+                throw new BusinessException("El acudiente requiere: nombre, documento y telefono.");
+
+            var guardian = currentGuardian?.Relationship == GuardianRelationship.Other
+                ? currentGuardian
+                : await _guardianRepo.GetByDocumentAsync(dto.DocumentNumber!);
+
+            guardian ??= new GuardianEntity { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow };
+            guardian.FullName = dto.FullName!;
+            guardian.DocumentType = dto.DocumentType ?? DocumentType.CC;
+            guardian.DocumentNumber = dto.DocumentNumber!;
+            guardian.Phone = dto.Phone!;
+            guardian.Address = dto.Address;
+            guardian.Email = dto.Email;
+            guardian.Occupation = dto.Occupation;
+            guardian.Relationship = GuardianRelationship.Other;
+            guardian.ParentId = null;
+
+            if (!guardian.Students.Any(s => s.Id == student.Id))
+                guardian.Students.Add(student);
+
+            await _guardianRepo.AddOrUpdateAsync(guardian);
+            return guardian;
+        }
+
+        private async Task<GuardianEntity> UpsertGuardianFromParentAsync(
+            StudentEntity student,
+            ParentEntity parent,
+            GuardianRelationship relationship,
+            GuardianEntity? currentGuardian)
+        {
+            var guardian = currentGuardian?.ParentId == parent.Id
+                ? currentGuardian
+                : await _guardianRepo.GetByDocumentAsync(parent.DocumentNumber);
+
+            guardian ??= new GuardianEntity { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow };
+            guardian.FullName = parent.FullName;
+            guardian.DocumentType = parent.DocumentType;
+            guardian.DocumentNumber = parent.DocumentNumber;
+            guardian.Phone = parent.Phone ?? string.Empty;
+            guardian.Email = parent.Email;
+            guardian.Occupation = parent.Occupation;
+            guardian.Relationship = relationship;
+            guardian.ParentId = parent.Id;
+
+            if (!guardian.Students.Any(s => s.Id == student.Id))
+                guardian.Students.Add(student);
+
+            await _guardianRepo.AddOrUpdateAsync(guardian);
+            return guardian;
         }
 
         private static ParentEntity MapParent(CreateParentDto dto) => new()

@@ -16,3 +16,13 @@ namespace LuminiSchool.Domain.Model.Attendance.DTOs
         public string? Notes { get; set; } 
     }
 }
+
+namespace LuminiSchool.Domain.Model.Attendance.DTOs
+{
+    public class UpdateAttendanceDto
+    {
+        public AttendanceStatus Status { get; set; }
+        public string? Notes { get; set; }
+        public DateTime Date { get; set; }
+    }
+}

@@ -12,5 +12,7 @@ namespace LuminiSchool.Infrastructure.Repositories.Contract
         Task<IEnumerable<EnrollmentEntity>> GetByStudentAsync(Guid studentId);
         Task<IEnumerable<EnrollmentEntity>> GetByGradeAndYearAsync(Guid gradeId, int year);
         Task<EnrollmentEntity?> GetActiveByStudentAsync(Guid studentId);
+        Task<IEnumerable<EnrollmentEntity>> GetAllWithDetailsAsync();
+        Task<EnrollmentEntity?> GetWithDetailsAsync(Guid enrollmentId);
     }
 }

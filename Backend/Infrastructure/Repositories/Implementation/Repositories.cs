@@ -36,6 +36,7 @@ namespace LuminiSchool.Infrastructure.Repositories.Implementation
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> p) => await _db.Where(p).ToListAsync();
         public async Task<T> AddAsync(T e) { await _db.AddAsync(e); await _ctx.SaveChangesAsync(); return e; }
         public async Task UpdateAsync(T e) { _db.Update(e); await _ctx.SaveChangesAsync(); }
+        public void UpdateWithoutSave(T e) { _db.Update(e); }
         public async Task DeleteAsync(Guid id) { var e = await _db.FindAsync(id); if (e != null) { _db.Remove(e); await _ctx.SaveChangesAsync(); } }
         public async Task<bool> ExistsAsync(Guid id) => await _db.FindAsync(id) != null;
         public async Task<int> CountAsync(Expression<Func<T, bool>>? p = null) => p == null ? await _db.CountAsync() : await _db.CountAsync(p);

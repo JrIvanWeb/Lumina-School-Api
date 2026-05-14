@@ -17,6 +17,14 @@ namespace LuminiSchool.Presentation.Controllers
         public async Task<IActionResult> GetAll() =>
             Ok(await _svc.GetAllAsync());
 
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetById(Guid id) =>
+            Ok(await _svc.GetByIdAsync(id));
+
+        [HttpGet("{id:guid}/ficha")]
+        public async Task<IActionResult> GetFicha(Guid id) =>
+            Ok(await _svc.GetFichaAsync(id));
+
         [HttpGet("student/{sid:guid}")]
         public async Task<IActionResult> GetByStudent(Guid sid) =>
             Ok(await _svc.GetByStudentAsync(sid));
@@ -26,6 +34,11 @@ namespace LuminiSchool.Presentation.Controllers
         [Authorize(Roles = "SuperAdmin,Admin,Rector")]
         public async Task<IActionResult> Create([FromBody] CreateEnrollmentDto dto) =>
             Ok(await _svc.CreateAsync(dto));
+
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = "SuperAdmin,Admin,Rector")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEnrollmentDto dto) =>
+            Ok(await _svc.UpdateAsync(id, dto));
 
         /// <summary>
         /// Ficha completa de matrícula:
@@ -42,6 +55,22 @@ namespace LuminiSchool.Presentation.Controllers
         public async Task<IActionResult> Withdraw(Guid id)
         {
             await _svc.WithdrawAsync(id);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "SuperAdmin,Admin,Rector")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            await _svc.DeleteAsync(id);
+            return NoContent();
+        }
+
+        [HttpPatch("{id:guid}/activate")]
+        [Authorize(Roles = "SuperAdmin,Admin,Rector")]
+        public async Task<IActionResult> Activate(Guid id)
+        {
+            await _svc.ActivateAsync(id);
             return NoContent();
         }
     }

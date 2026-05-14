@@ -4,6 +4,7 @@ namespace LuminiSchool.Domain.Model.User.DTOs
     public record LoginDto(string Email, string Password);
 
     public record CreateUserDto(string FirstName, string LastName, string Email, string Role);
+    public record UpdateUserDto(string FirstName, string LastName, string Role);
     public record ForceChangePasswordDto(string NewPassword, string ConfirmPassword);
 
     public record ChangePasswordDto(string CurrentPassword, string NewPassword);
