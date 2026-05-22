@@ -14,6 +14,7 @@ namespace LuminiSchool.Business.Utils.Profiles
         public AcademicPeriodProfile() {
             CreateMap<AcademicPeriodEntity, AcademicPeriodDto>();
             CreateMap<CreateAcademicPeriodDto, AcademicPeriodEntity>();
+            CreateMap<UpdateAcademicPeriodDto, AcademicPeriodEntity>();
         }
     }
 }

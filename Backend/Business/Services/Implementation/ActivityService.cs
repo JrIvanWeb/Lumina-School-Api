@@ -15,6 +15,27 @@ namespace LuminiSchool.Business.Services.Implementation
         public async Task<ActivityDto> GetByIdAsync(Guid id) => _m.Map<ActivityDto>(await _r.GetByIdAsync(id) ?? throw new NotFoundException($"Actividad {id} no encontrada."));
         public async Task<IEnumerable<ActivityDto>> GetByTeacherAsync(Guid tid) => _m.Map<IEnumerable<ActivityDto>>(await _r.GetByTeacherAsync(tid));
         public async Task<ActivityDto> CreateAsync(CreateActivityDto dto) { var e = _m.Map<ActivityEntity>(dto); e.Id = Guid.NewGuid(); return _m.Map<ActivityDto>(await _r.AddAsync(e)); }
+        public async Task<ActivityDto> UpdateAsync(Guid id, CreateActivityDto dto)
+        {
+            var e = await _r.GetByIdAsync(id) ?? throw new NotFoundException($"Actividad {id} no encontrada.");
+            e.GradeId          = dto.GradeId;
+            e.SubjectId        = dto.SubjectId;
+            e.AcademicPeriodId = dto.AcademicPeriodId;
+            e.Title            = dto.Title;
+            e.Objective        = dto.Objective;
+            e.Standard         = dto.Standard;
+            e.Description      = dto.Description;
+            e.Resources        = dto.Resources;
+            e.Type             = dto.Type;
+            e.Status           = dto.Status;
+            e.MaxScore         = dto.MaxScore;
+            e.HasDueDate       = dto.HasDueDate;
+            e.DueDate          = dto.DueDate;
+            e.StartDate        = dto.StartDate;
+            e.EndDate          = dto.EndDate;
+            await _r.UpdateAsync(e);
+            return _m.Map<ActivityDto>(e);
+        }
         public async Task DeleteAsync(Guid id) { if (!await _r.ExistsAsync(id)) throw new NotFoundException($"Actividad {id} no encontrada."); await _r.DeleteAsync(id); }
         public async Task<ActivitySubmissionDto> SubmitAsync(SubmitActivityDto dto) { var s = new ActivitySubmissionEntity { Id = Guid.NewGuid(), ActivityId = dto.ActivityId, StudentId = dto.StudentId, FileUrl = dto.FileUrl, Comments = dto.Comments, SubmittedAt = DateTime.UtcNow }; return _m.Map<ActivitySubmissionDto>(await _r.AddSubmissionAsync(s)); }
         public async Task<ActivitySubmissionDto> GradeSubmissionAsync(GradeSubmissionDto dto) { var s = await _r.GetSubmissionByStudentAsync(dto.SubmissionId, Guid.Empty) ?? throw new NotFoundException("Entrega no encontrada."); s.Score = dto.Score; s.Feedback = dto.Feedback; s.GradedAt = DateTime.UtcNow; await _r.UpdateSubmissionAsync(s); return _m.Map<ActivitySubmissionDto>(s); }

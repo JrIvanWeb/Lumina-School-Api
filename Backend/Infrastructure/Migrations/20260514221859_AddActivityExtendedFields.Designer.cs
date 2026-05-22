@@ -4,6 +4,7 @@ using LuminiSchool.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LuminiSchool.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260514221859_AddActivityExtendedFields")]
+    partial class AddActivityExtendedFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,9 +103,6 @@ namespace LuminiSchool.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("PeriodNumber")
                         .HasColumnType("int");
 
@@ -120,54 +120,35 @@ namespace LuminiSchool.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Achievement")
-                        .IsRequired()
-                        .HasMaxLength(800)
-                        .HasColumnType("nvarchar(800)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("GradeId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Indicator")
-                        .HasMaxLength(400)
-                        .HasColumnType("nvarchar(400)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("NoteMax")
-                        .HasPrecision(4, 2)
-                        .HasColumnType("decimal(4,2)");
-
-                    b.Property<decimal>("NoteMin")
-                        .HasPrecision(4, 2)
-                        .HasColumnType("decimal(4,2)");
-
-                    b.Property<int>("Performance")
+                    b.Property<int>("Level")
                         .HasColumnType("int");
-
-                    b.Property<Guid>("PeriodId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GradeId");
-
                     b.HasIndex("SubjectId");
 
-                    b.HasIndex("PeriodId", "GradeId", "SubjectId", "Performance")
-                        .HasDatabaseName("IX_Achievements_PeriodId_GradeId_SubjectId_Performance");
-
-                    b.ToTable("Achievements", (string)null);
+                    b.ToTable("Achievements");
                 });
 
             modelBuilder.Entity("LuminiSchool.Domain.Entities.Activity.ActivityEntity", b =>
@@ -223,7 +204,7 @@ namespace LuminiSchool.Infrastructure.Migrations
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("TeacherId")
+                    b.Property<Guid>("TeacherId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Title")
@@ -1559,27 +1540,11 @@ namespace LuminiSchool.Infrastructure.Migrations
 
             modelBuilder.Entity("LuminiSchool.Domain.Entities.Achievement.AchievementEntity", b =>
                 {
-                    b.HasOne("LuminiSchool.Domain.Entities.Grade.GradeEntity", "Grade")
-                        .WithMany()
-                        .HasForeignKey("GradeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("LuminiSchool.Domain.Entities.AcademicPeriod.AcademicPeriodEntity", "Period")
-                        .WithMany()
-                        .HasForeignKey("PeriodId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("LuminiSchool.Domain.Entities.Subject.SubjectEntity", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Grade");
-
-                    b.Navigation("Period");
 
                     b.Navigation("Subject");
                 });
@@ -1594,7 +1559,9 @@ namespace LuminiSchool.Infrastructure.Migrations
 
                     b.HasOne("LuminiSchool.Domain.Entities.Teacher.TeacherEntity", "Teacher")
                         .WithMany()
-                        .HasForeignKey("TeacherId");
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Subject");
 

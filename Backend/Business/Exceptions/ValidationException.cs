@@ -10,5 +10,9 @@ namespace LuminiSchool.Business.Exceptions
     {
         public IEnumerable<string> Errors { get; }
         public ValidationException(IEnumerable<string> errors) : base("Validación fallida.") { Errors = errors; }
+
+        public ValidationException(string? message) : base(message)
+        {
+        }
     }
 }

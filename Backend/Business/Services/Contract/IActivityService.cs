@@ -13,6 +13,7 @@ namespace LuminiSchool.Business.Services.Contract
         Task<ActivityDto> GetByIdAsync(Guid id);
         Task<IEnumerable<ActivityDto>> GetByTeacherAsync(Guid teacherId);
         Task<ActivityDto> CreateAsync(CreateActivityDto dto);
+        Task<ActivityDto> UpdateAsync(Guid id, CreateActivityDto dto);
         Task DeleteAsync(Guid id);
         Task<ActivitySubmissionDto> SubmitAsync(SubmitActivityDto dto);
         Task<ActivitySubmissionDto> GradeSubmissionAsync(GradeSubmissionDto dto);

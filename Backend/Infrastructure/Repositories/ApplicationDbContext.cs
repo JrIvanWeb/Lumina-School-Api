@@ -67,7 +67,7 @@ namespace LuminiSchool.Infrastructure.Repositories
         public DbSet<DiagnosticResultEntity>     DiagnosticResults     { get; set; }
         public DbSet<IcfesSimulatorEntity>       IcfesSimulators       { get; set; }
         public DbSet<IcfesResultEntity>          IcfesResults          { get; set; }
-        public DbSet<GradeSubjectTeacherEntity> GradeSubjectTeachers { get; set; }
+        public DbSet<GradeSubjectTeacherEntity>  GradeSubjectTeachers  { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -123,7 +123,7 @@ namespace LuminiSchool.Infrastructure.Repositories
                 .WithMany(s => s.Guardians)
                 .UsingEntity(j => j.ToTable("GuardianStudents"));
 
-            // ── Guardian → Parent (opcional, para reutilización) ──────────────
+            // ── Guardian → Parent (opcional) ──────────────────────────────────
             builder.Entity<GuardianEntity>()
                 .HasOne(g => g.Parent)
                 .WithMany()
@@ -151,8 +151,6 @@ namespace LuminiSchool.Infrastructure.Repositories
                 .UsingEntity(j => j.ToTable("GradeStudents"));
 
             // ── Grade ↔ Subject (muchos a muchos, bidireccional) ──────────────
-            // WithMany(s => s.Grades) permite consultar desde SubjectEntity
-            // qué grados tienen esa asignatura (necesario para SubjectRepository).
             builder.Entity<GradeEntity>()
                 .HasMany(g => g.Subjects)
                 .WithMany(s => s.Grades)
@@ -173,6 +171,7 @@ namespace LuminiSchool.Infrastructure.Repositories
             builder.Entity<DiagnosticResultEntity>().Property(d => d.Score).HasPrecision(5, 2);
             builder.Entity<IcfesResultEntity>().Property(i => i.TotalScore).HasPrecision(5, 2);
 
+            // ── GradeSubjectTeacher ───────────────────────────────────────────
             builder.Entity<GradeSubjectTeacherEntity>(e =>
             {
                 e.HasKey(x => x.Id);
@@ -192,10 +191,40 @@ namespace LuminiSchool.Infrastructure.Repositories
                  .HasForeignKey(x => x.TeacherId)
                  .OnDelete(DeleteBehavior.Restrict);
 
-                // Evita duplicados: misma combinación grado+materia+profesor
                 e.HasIndex(x => new { x.GradeId, x.SubjectId, x.TeacherId }).IsUnique();
 
                 e.ToTable("GradeSubjectTeachers");
+            });
+
+            // ── Achievement ───────────────────────────────────────────────────
+            builder.Entity<AchievementEntity>(e =>
+            {
+                e.HasKey(a => a.Id);
+
+                e.Property(a => a.NoteMin).HasPrecision(4, 2);
+                e.Property(a => a.NoteMax).HasPrecision(4, 2);
+                e.Property(a => a.Achievement).HasMaxLength(800).IsRequired();
+                e.Property(a => a.Indicator).HasMaxLength(400).IsRequired(false);
+
+                e.HasOne(a => a.Period)
+                 .WithMany()
+                 .HasForeignKey(a => a.PeriodId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(a => a.Grade)
+                 .WithMany()
+                 .HasForeignKey(a => a.GradeId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(a => a.Subject)
+                 .WithMany()
+                 .HasForeignKey(a => a.SubjectId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(a => new { a.PeriodId, a.GradeId, a.SubjectId, a.Performance })
+                 .HasDatabaseName("IX_Achievements_PeriodId_GradeId_SubjectId_Performance");
+
+                e.ToTable("Achievements");
             });
         }
     }

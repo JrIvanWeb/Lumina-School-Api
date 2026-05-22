@@ -2,7 +2,7 @@ using LuminiSchool.Domain.Entities.Achievement;
 
 namespace LuminiSchool.Domain.Model.Achievement.DTOs
 {
-    public class CreateAchievementDto
+    public class UpdateAchievementDto
     {
         public Guid             PeriodId    { get; set; }
         public Guid             GradeId     { get; set; }
@@ -10,11 +10,7 @@ namespace LuminiSchool.Domain.Model.Achievement.DTOs
         public PerformanceLevel Performance { get; set; }
         public decimal          NoteMin     { get; set; }
         public decimal          NoteMax     { get; set; }
-
-        /// <summary>Máx. 800 caracteres. Redactar en infinitivo.</summary>
         public string           Achievement { get; set; } = string.Empty;
-
-        /// <summary>Máx. 400 caracteres. Opcional.</summary>
         public string?          Indicator   { get; set; }
     }
 }

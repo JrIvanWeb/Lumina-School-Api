@@ -1,8 +1,6 @@
-﻿using LuminiSchool.Domain.Entities.Teacher;
+using LuminiSchool.Domain.Entities.Teacher;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace LuminiSchool.Infrastructure.Repositories.Contract
@@ -13,5 +11,6 @@ namespace LuminiSchool.Infrastructure.Repositories.Contract
         Task<IEnumerable<TeacherEntity>> GetWithSubjectsAsync();
         Task AssignSubjectAsync(Guid teacherId, Guid subjectId);
         Task RemoveSubjectAsync(Guid teacherId, Guid subjectId);
+        Task<TeacherEntity?> GetByUserIdAsync(Guid userId);   // ← NUEVO
     }
 }
