@@ -85,6 +85,7 @@ namespace LuminiSchool.Presentation.IoCContainers
             services.AddScoped<IReportRepository,               ReportRepository>();
             services.AddScoped<IDiagnosticTestRepository,       DiagnosticTestRepository>();
             services.AddScoped<IIcfesSimulatorRepository,       IcfesSimulatorRepository>();
+            services.AddScoped<ISchoolRepository,               SchoolRepository>();
 
             // ── File Storage ──────────────────────────────────────────────────────
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
@@ -126,6 +127,7 @@ namespace LuminiSchool.Presentation.IoCContainers
             services.AddScoped<IReportService,              ReportService>();
             services.AddScoped<IDiagnosticTestService,      DiagnosticTestService>();
             services.AddScoped<IIcfesSimulatorService,      IcfesSimulatorService>();
+            services.AddScoped<ISchoolService,              SchoolService>();
 
             return services;
         }

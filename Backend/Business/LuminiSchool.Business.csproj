@@ -7,11 +7,11 @@
 		<AssemblyName>LuminiSchool.Business</AssemblyName>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="AutoMapper"                                        Version="13.0.1" />
+		<PackageReference Include="AutoMapper" Version="13.0.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"   Version="10.0.0" />
-		<PackageReference Include="Microsoft.IdentityModel.Tokens"                   Version="8.4.0" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt"                  Version="8.4.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.4.0" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Domain\LuminiSchool.Domain.csproj" />

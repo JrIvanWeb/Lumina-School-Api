@@ -1,4 +1,5 @@
 using LuminiSchool.Domain.Entities.User;
+using LuminiSchool.Domain.Entities.School;
 using LuminiSchool.Domain.Entities.Student;
 using LuminiSchool.Domain.Entities.GradeSubjectTeacher;
 using LuminiSchool.Domain.Entities.Teacher;
@@ -68,6 +69,7 @@ namespace LuminiSchool.Infrastructure.Repositories
         public DbSet<IcfesSimulatorEntity>       IcfesSimulators       { get; set; }
         public DbSet<IcfesResultEntity>          IcfesResults          { get; set; }
         public DbSet<GradeSubjectTeacherEntity>  GradeSubjectTeachers  { get; set; }
+        public DbSet<SchoolEntity>               Schools               { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
